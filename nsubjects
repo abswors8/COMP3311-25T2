@@ -1,0 +1,34 @@
+#!/usr/bin/python3
+import sys
+import psycopg2
+if len(sys.argv) < 2:
+    print("Usage: nsubjects partname")
+    exit(1)
+partname = sys.argv[1]
+conn=None
+qry="""select id, longname from orgunits where longname ~* %s"""
+try:
+    conn = psycopg2.connect(f"dbname=uni")
+    cur = conn.cursor()
+    cur.execute(qry,[partname])
+    school = cur.fetchall()
+    if len(school) == 0:
+        print("noone")
+        exit(1)
+    elif len(school) > 1:
+        print("Multiple schools match:")
+        for s in school:
+            print(s[1])
+        exit(1)
+    else:
+        qry2="select count(*) from subjects where offeredby = %s"
+        cur.execute(qry2,[school[0][0]])
+        num = cur.fetchone()
+        print(f"{school[0][1]} teaches {num[0]} subjects.")
+
+    
+except psycopg2.Error as err:
+    print("database error: ", err)
+finally:
+    if conn is not None:
+        conn.close()
